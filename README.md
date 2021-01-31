@@ -1,4 +1,4 @@
-### C-Slim Language Project
+# C-Slim Language Project
 
 Goal of this project: create a simple C-style language, compiler, and
 interpreter. The language will basically be a copy of C but without verbose and outdated features that I find frustrating, as well as some miscellaneous new
