@@ -1,0 +1,7 @@
+// this is a comment
+int x; {
+
+}#ignore
+
+string y[];
+
