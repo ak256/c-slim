@@ -9,9 +9,6 @@ OBJECTS = $(patsubst %.c, %.o, $(shell find . -name "*.c"))
 
 all: $(TARGET)
 
-run: $(TARGET)
-	./$(TARGET)
-
 debug: $(FLAGS) += $(DEBUG_FLAGS)
 debug: $(TARGET)
 	gdb --args $(TARGET)

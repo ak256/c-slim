@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "parser.h"
+#include "scanner.h"
 
 static const char *VERSION = "0.0";
 
@@ -42,13 +42,18 @@ int main(int argc, char **argv) {
     }
     
     // compile each input file
-    parser_init();
+    scanner_init();
     for (int i = 0; i < input_files_count; i++) {
         FILE *file = fopen(input_files[i], "r");
+        if (!file) {
+            fprintf(stderr, "Failed to open file %s\n", input_files[i]);
+            return 1;
+        }
+
         int ln = 1; // line number
         Token *token;
-        while ((token = parse_token(file, &ln)) != NULL) {
-            printf("[%i] %s\n", token->id, token->string);
+        while ((token = scanner_scan_token(file, &ln)) != NULL) {
+            printf("  [%i] %s\n", token->id, token->string);
         }
         fclose(file);
     }

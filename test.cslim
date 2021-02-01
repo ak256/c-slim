@@ -1,7 +1,9 @@
+{0,1,2, 3 ,4}
+993.41420
 // this is a comment
-int x; {
-
-}#ignore
-
+int x = struct.member; { 
+}#include "void"
+"123"
+"this is a \"quote\" \ntest"
 string y[];
 

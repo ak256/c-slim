@@ -1,7 +1,7 @@
 # C-Slim Language Project
 
 Goal of this project: create a simple C-style language, compiler, and
-interpreter. The language will basically be a copy of C but without verbose and outdated features that I find frustrating, as well as some miscellaneous new
+interpreter. The language will be heavily based on C but without verbose and outdated features that I find frustrating, as well as some miscellaneous new
 features. 
 
 For the sake of time, simplicity, and the fact that I just want to 
@@ -15,4 +15,5 @@ should still be decently efficient and work well as a language in general.
 * NO header files.
 * NO confusing typing (i.e. "int \*x, y"). The type is specified by the type identifier, not the name of the object (so "int\* x, y" means both x and y are integer pointers).
 * NO typedef nor typedef struct. Structs are types. 
-* All whitespace is equal (including new lines). Any statement can carry onto the next line and is ended by semicolon. Multi-line string literals are thus inherently allowed. A consequence of this is that comments need to be closed with a semicolon as well (an interesting quirk, and I've changed the comment identifier from "//" to "$" in order to lessen the conflict with ingrained knowledge).
+* NO "->" for dereferencing and then accessing members of a pointer to a struct. The "." operator will be used here instead also.
+* Namespaces by file; each file is its own scope and declarations from other files can be accessed like so: "otherfile:declaration". This is for better organization and no need for ridiculously long names to avoid conflicts (e.g. "mymodule\_function\_name").
