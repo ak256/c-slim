@@ -10,10 +10,11 @@
 #include "scanner.h"
 #include "token.h"
 
-// expression length (for a token)
+// maximum expression length (in chars for a token)
 #define MAX_EXPR_LENGTH 4096
 #define REGEX_FLAGS (REG_EXTENDED | REG_NOSUB)
 
+// map regular expressions to tokens
 typedef struct TokenRegex {
     regex_t regex;
     int tokenID;
@@ -22,6 +23,11 @@ typedef struct TokenRegex {
 static TokenRegex *regexes;
 static int regex_count = 0;
 
+/* Creates a regex that corresponds to a token.
+ *
+ * regexstr - the regular expression to use
+ * tokenID - the token that the regex matches to
+ */
 static void ___(const char *regexstr, int tokenID) {
     TokenRegex tr;
     tr.tokenID = tokenID;
@@ -38,24 +44,25 @@ static void ___(const char *regexstr, int tokenID) {
     regex_count++;
 }
 
+/* Must be called before using scanner. */
 void scanner_init() {
     regexes = malloc(sizeof(TokenRegex) * 32);
-    ___("^;", T_END);
-    ___("^[-.~!$%^&*+=|:?]", T_OPERATOR);
-    ___("^/[^/]", T_OPERATOR_SLASH);
-    ___("^,", T_LIST_SEPARATOR);
-    ___("^\\(", T_GROUP_OPEN);
-    ___("^\\)", T_GROUP_CLOSE);
-    ___("^\\{", T_BLOCK_OPEN);
-    ___("^\\}", T_BLOCK_CLOSE);
-    ___("^[a-zA-Z_][a-zA-Z0-9_]*[^a-zA-Z0-9_]$", T_IDENTIFIER);
-    ___("^([0-9]+)[.]([0-9]+)[^0-9]$", T_FLOAT_LITERAL);
-    ___("^[0-9][^0-9]$", T_INT_LITERAL);
-    ___("^\"([^\\\"]|\\\\.)*\"", T_STRING_LITERAL);
-    ___("^\\[", T_LIST_OPEN);
-    ___("^\\]", T_LIST_CLOSE);
-    ___("^#include ", T_PP_INCLUDE);
-    ___("^#define ", T_PP_DEFINE);
+    ___("^;", TOK_END);
+    ___("^[-.~!$%^&*+=|:?]", TOK_OPERATOR);
+    ___("^/[^/]", TOK_OPERATOR_SLASH);
+    ___("^,", TOK_LISTOK_SEPARATOR);
+    ___("^\\(", TOK_GROUP_OPEN);
+    ___("^\\)", TOK_GROUP_CLOSE);
+    ___("^\\{", TOK_BLOCK_OPEN);
+    ___("^\\}", TOK_BLOCK_CLOSE);
+    ___("^[a-zA-Z_][a-zA-Z0-9_]*[^a-zA-Z0-9_]$", TOK_IDENTIFIER);
+    ___("^([0-9]+)[.]([0-9]+)[^0-9]$", TOK_FLOATOK_LITERAL);
+    ___("^[0-9][^0-9]$", TOK_INTOK_LITERAL);
+    ___("^\"([^\\\"]|\\\\.)*\"", TOK_STRING_LITERAL);
+    ___("^\\[", TOK_LISTOK_OPEN);
+    ___("^\\]", TOK_LISTOK_CLOSE);
+    ___("^#include ", TOK_PP_INCLUDE);
+    ___("^#define ", TOK_PP_DEFINE);
 }
 
 /* Scans and returns the next token from the file.
@@ -108,8 +115,9 @@ Token *scanner_scan_token(FILE *file, int *ln) {
 
             Token *token = malloc(sizeof(Token));
             token->id = regexes[i].tokenID;
+            token->ln = expLn;
             int string_size = bufind + 2;
-            if (token->id <= T_IDENTIFIER) {
+            if (token->id <= TOK_IDENTIFIER) {
                 // always ends with an extra unrelated char. trim this char
                 buf[bufind] = '\0';
                 string_size--;

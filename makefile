@@ -1,7 +1,7 @@
 CC = gcc
 TARGET = cslim_compiler
 DEBUG_FLAGS = -g
-FLAGS = -Wall -pedantic
+FLAGS = -Wall -Wno-parentheses
 LINK_FLAGS = $(FLAGS)
 OBJECTS = $(patsubst %.c, %.o, $(shell find . -name "*.c"))
 

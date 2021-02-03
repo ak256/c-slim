@@ -1,4 +1,6 @@
-// compiler.c
+/* compiler.c
+ * author: Andrew Klinge
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,7 +8,7 @@
 
 #include "scanner.h"
 
-static const char *VERSION = "0.0";
+static const char *VERSION = "0.1.1";
 
 void print_help() {
     printf("C-Slim compiler Help Page:\n\t-h --help ... print this page\n\t-v --version ... print version\n");
