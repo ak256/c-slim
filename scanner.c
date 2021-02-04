@@ -11,7 +11,7 @@
 #include "token.h"
 
 // maximum expression length (in chars for a token)
-#define MAX_EXPR_LENGTH 4096
+#define CHARBUF_SIZE 4096
 #define REGEX_FLAGS (REG_EXTENDED | REG_NOSUB)
 
 // map regular expressions to tokens
@@ -44,8 +44,9 @@ static void ___(const char *regexstr, int tokenID) {
     regex_count++;
 }
 
-/* Must be called before using scanner. */
-void scanner_init() {
+/* Initializes the given scanner. */
+void scanner_init(Scanner *scanner) {
+    scanner->buf = malloc(sizeof(char) * CHARBUF_SIZE);
     regexes = malloc(sizeof(TokenRegex) * 32);
     ___("^;", TOK_END);
     ___("^[-.~!$%^&*+=|:?]", TOK_OPERATOR);
@@ -69,8 +70,8 @@ void scanner_init() {
  *
  * ln - the current line number.
  */
-Token *scanner_scan_token(FILE *file, int *ln) {
-    static char buf[MAX_EXPR_LENGTH]; // don't need a new buffer between calls
+Token *scanner_scan_token(Scanner *scanner, FILE *file, int *ln) {
+    char *buf = scanner->buf;
     int bufind = 0;
     int expLn = *ln; // expression starts on this line
     bool commented = 0; // whether scanning a comment. ends on new line
@@ -141,12 +142,12 @@ Token *scanner_scan_token(FILE *file, int *ln) {
         } 
         // move onto next character
         bufind++;
-        if (bufind >= MAX_EXPR_LENGTH - 2) {
+        if (bufind >= CHARBUF_SIZE - 2) {
             buf[bufind] = '\0';
             char *newLine = index(buf, '\n');
             if (newLine) *newLine = '\0'; // we only want to print first line
             fprintf(stderr, "Expression exceeds maximum length (%i) ",
-                MAX_EXPR_LENGTH);
+                CHARBUF_SIZE);
             fprintf(stderr, "at line %i: %s\n", expLn, buf);
             return NULL;
         }

@@ -7,11 +7,22 @@
 #include <string.h>
 
 #include "scanner.h"
+#include "parser.h"
+#include "symtable.h"
+#include "token.h"
+#include "scanner.h"
 
-static const char *VERSION = "0.1.1";
+// enables all debugging output
+#define DEBUG_ALL 1
+// enables token debugging output
+#define DEBUG_TOKENS 0
+
+static const char *VERSION = "0.1.2";
 
 void print_help() {
-    printf("C-Slim compiler Help Page:\n\t-h --help ... print this page\n\t-v --version ... print version\n");
+    printf("C-Slim compiler Help Page:\n");
+    printf("\t-h --help ... print this page\n");
+    printf("\t-v --version ... print version\n");
 }
 
 void print_version() {
@@ -43,8 +54,16 @@ int main(int argc, char **argv) {
         input_files_count++;
     }
     
+    // initialize compiler parts
+    SymTable symtable;
+    Scanner scanner;
+    Parser parser;
+
+    symtable_init(&symtable);
+    scanner_init(&scanner);
+    parser_init(&parser);
+
     // compile each input file
-    scanner_init();
     for (int i = 0; i < input_files_count; i++) {
         FILE *file = fopen(input_files[i], "r");
         if (!file) {
@@ -54,8 +73,20 @@ int main(int argc, char **argv) {
 
         int ln = 1; // line number
         Token *token;
-        while ((token = scanner_scan_token(file, &ln)) != NULL) {
-            printf("  [%i] %s\n", token->id, token->string);
+        while ((token = scanner_scan_token(&scanner, file, &ln)) != NULL) {
+            #if DEBUG_TOKENS || DEBUG_ALL
+                printf("@%i [%i] %s\n", ln, token->id, token->string);
+            #endif
+
+            Statement *stmnt = parser_parse_statement(&parser, &symtable, 
+                token);
+            free(token);
+
+            if (stmnt != NULL) {
+                #if DEBUG_STATEMENTS || DEBUG_ALL
+                    printf("@%i  |-> [%i]\n", ln, stmnt->id);
+                #endif
+            }
         }
         fclose(file);
     }

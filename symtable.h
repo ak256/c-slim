@@ -5,7 +5,9 @@
 #ifndef _SYMTABLE_H_
 #define _SYMTABLE_H_
 
-#include "array.h"
+#include "utils/array.h"
+
+extern const int SYMTABLE_MAX_SCOPES;
 
 enum symbols {
     SYM_VAR,
@@ -27,9 +29,10 @@ typedef struct Sym {
 
 void symtable_init(SymTable *tbl);
 void symtable_deinit(SymTable *tbl);
-void symtable_push_scope(SymTable *tbl);
-void symtable_pop_scope(SymTable *tbl);
 void symtable_add(SymTable *tbl, Sym *sym);
+
+int symtable_push_scope(SymTable *tbl);
+int symtable_pop_scope(SymTable *tbl);
 
 Sym *symtable_get(SymTable *tbl, char *sym_name);
 
