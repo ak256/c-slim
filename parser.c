@@ -55,8 +55,23 @@ Statement *parser_parse_statement(Parser *parser, SymTable *tbl, Token *token) {
 
     // form statement if at end of one
     if (token->id == TOK_END) {
+        // aliases
+        int count = parser->tokenbuf_count;
+        Token *buf = parser->tokenbuf;
+        
+        if (count == 1) return NULL; // empty statement
+
         Statement *stmnt = malloc(sizeof(Statement));
-        // TODO
+        if (buf[0].id > TOKSEC_PP) {
+            switch (buf[0].id) {
+                case TOK_PP_INCLUDE:
+                    // TODO
+                    break;
+                case TOK_PP_DEFINE:
+                    // TODO
+                    break;
+            }
+        }
         return stmnt;
     }
     return NULL;

@@ -47,23 +47,25 @@ static void ___(const char *regexstr, int tokenID) {
 /* Initializes the given scanner. */
 void scanner_init(Scanner *scanner) {
     scanner->buf = malloc(sizeof(char) * CHARBUF_SIZE);
-    regexes = malloc(sizeof(TokenRegex) * 32);
-    ___("^;", TOK_END);
-    ___("^[-.~!$%^&*+=|:?]", TOK_OPERATOR);
-    ___("^/[^/]", TOK_OPERATOR_SLASH);
-    ___("^,", TOK_LISTOK_SEPARATOR);
-    ___("^\\(", TOK_GROUP_OPEN);
-    ___("^\\)", TOK_GROUP_CLOSE);
-    ___("^\\{", TOK_BLOCK_OPEN);
-    ___("^\\}", TOK_BLOCK_CLOSE);
-    ___("^[a-zA-Z_][a-zA-Z0-9_]*[^a-zA-Z0-9_]$", TOK_IDENTIFIER);
-    ___("^([0-9]+)[.]([0-9]+)[^0-9]$", TOK_FLOATOK_LITERAL);
-    ___("^[0-9][^0-9]$", TOK_INTOK_LITERAL);
-    ___("^\"([^\\\"]|\\\\.)*\"", TOK_STRING_LITERAL);
-    ___("^\\[", TOK_LISTOK_OPEN);
-    ___("^\\]", TOK_LISTOK_CLOSE);
-    ___("^#include ", TOK_PP_INCLUDE);
-    ___("^#define ", TOK_PP_DEFINE);
+    if (regexes == NULL) {
+        regexes = malloc(sizeof(TokenRegex) * 32);
+        ___("^;", TOK_END);
+        ___("^[-.~!$%^&*+=|:?]", TOK_OPERATOR);
+        ___("^/[^/]", TOK_OPERATOR_SLASH);
+        ___("^,", TOK_LISTOK_SEPARATOR);
+        ___("^\\(", TOK_GROUP_OPEN);
+        ___("^\\)", TOK_GROUP_CLOSE);
+        ___("^\\{", TOK_BLOCK_OPEN);
+        ___("^\\}", TOK_BLOCK_CLOSE);
+        ___("^[a-zA-Z_][a-zA-Z0-9_]*[^a-zA-Z0-9_]$", TOK_IDENTIFIER);
+        ___("^([0-9]+)[.]([0-9]+)[^0-9]$", TOK_FLOATOK_LITERAL);
+        ___("^[0-9][^0-9]$", TOK_INTOK_LITERAL);
+        ___("^\"([^\\\"]|\\\\.)*\"", TOK_STRING_LITERAL);
+        ___("^\\[", TOK_LISTOK_OPEN);
+        ___("^\\]", TOK_LISTOK_CLOSE);
+        ___("^#include ", TOK_PP_INCLUDE);
+        ___("^#define ", TOK_PP_DEFINE);
+    }
 }
 
 /* Scans and returns the next token from the file.
@@ -114,18 +116,23 @@ Token *scanner_scan_token(Scanner *scanner, FILE *file, int *ln) {
         for (int i = 0; i < regex_count; i++) {
             if (regexec(&regexes[i].regex, buf, 0, NULL, 0)) continue;
 
-            Token *token = malloc(sizeof(Token));
-            token->id = regexes[i].tokenID;
-            token->ln = expLn;
-            int string_size = bufind + 2;
-            if (token->id <= TOK_IDENTIFIER) {
+            int tokenID = regexes[i].tokenID;
+            int string_size = bufind + 2; // for token's text
+            if (tokenID < TOKSEC_CHAR_TERMINATED) {
                 // always ends with an extra unrelated char. trim this char
                 buf[bufind] = '\0';
                 string_size--;
                 // still want it to be scanned, though
                 fseek(file, -1, SEEK_CUR); 
+            } else if (tokenID > TOKSEC_PP) {
+                // preprocessor command. always ends with a space (ignore)
+                buf[bufind] = '\0';
+                string_size--;
             }
 
+            Token *token = malloc(sizeof(Token));
+            token->id = tokenID;
+            token->ln = expLn;
             char *string = malloc(sizeof(char) * string_size);
             strncpy(string, buf, string_size);
             token->string = string;

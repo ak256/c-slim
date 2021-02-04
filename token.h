@@ -8,6 +8,7 @@ enum tokens {
     TOK_FLOATOK_LITERAL,
     TOK_OPERATOR_SLASH,          // for differentiating between /'s and comments
     TOK_IDENTIFIER,              // variable name, type, etc.
+    TOKSEC_CHAR_TERMINATED,      // token section
     // anything above this line will have a regex terminator char (see scanner)
     TOK_END,                     // end of statement
     TOK_STRING_LITERAL,
@@ -20,6 +21,7 @@ enum tokens {
     TOK_LISTOK_CLOSE,
     TOK_OPERATOR, 
     // anything below this line is a preprocessor command token
+    TOKSEC_PP,
     TOK_PP_INCLUDE,
     TOK_PP_DEFINE
 };

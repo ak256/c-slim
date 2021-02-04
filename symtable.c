@@ -52,6 +52,13 @@ void symtable_add(SymTable *tbl, Sym *sym) {
  */
 Sym *symtable_get(SymTable *tbl, char *sym_name) {
     if (tbl->scopes.count <= 0) return NULL;
-    // TODO
-    return NULL;
+    Sym *sym = NULL;
+    int hashcode = hash(sym_name);
+    int at = tbl->scopes.count - 1;
+    while ((sym = hashtable_get((HashTable*) tbl->scopes.items[at], hashcode))
+        == NULL) {
+        at--;
+        if (at < 0) break; // searched all scopes 
+    }
+    return sym;
 }
