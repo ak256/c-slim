@@ -78,8 +78,7 @@ int main(int argc, char **argv) {
                 printf("@%i [%i] %s\n", ln, token->id, token->string);
             #endif
 
-            Statement *stmnt = parser_parse_statement(&parser, &symtable, 
-                token);
+            Statement *stmnt = parser_parse_statement(&parser, &symtable, token);
             free(token);
 
             if (stmnt != NULL) {

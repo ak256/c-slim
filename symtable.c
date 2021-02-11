@@ -55,8 +55,7 @@ Sym *symtable_get(SymTable *tbl, char *sym_name) {
     Sym *sym = NULL;
     int hashcode = hash(sym_name);
     int at = tbl->scopes.count - 1;
-    while ((sym = hashtable_get((HashTable*) tbl->scopes.items[at], hashcode))
-        == NULL) {
+    while ((sym = hashtable_get((HashTable*) tbl->scopes.items[at], hashcode)) == NULL) {
         at--;
         if (at < 0) break; // searched all scopes 
     }

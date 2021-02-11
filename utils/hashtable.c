@@ -60,8 +60,7 @@ int hashtable_add(HashTable *table, unsigned long key, void *value) {
     // find open index in table (or existing, same-key entry)
     int index = key % table->size; // index in hashtable
     HashEntry *entries = table->entries;
-    while (entries[index].state == HASHENTRY_ACTIVE 
-        && entries[index].key != key) {
+    while (entries[index].state == HASHENTRY_ACTIVE && entries[index].key != key) {
         // hash collision! use linear probing
         index = (index + 1) % table->size;
     }
@@ -146,8 +145,7 @@ int hashtable_index(HashTable *table, unsigned long key) {
         for (int i = 0; i < table->size; i++) {
             if (table->entries[i].state != HASHENTRY_ACTIVE) continue;
             table->entries[i].state = HASHENTRY_FREE;
-            hashtable_add(table, table->entries[i].key, 
-                table->entries[i].value);
+            hashtable_add(table, table->entries[i].key, table->entries[i].value);
         }
         table->free_count = table->size - table->count;
     }
@@ -156,8 +154,7 @@ int hashtable_index(HashTable *table, unsigned long key) {
     int index = key % table->size;
     int start = index;
     while (entries[index].state != HASHENTRY_FREE) {
-        if (entries[index].state == HASHENTRY_ACTIVE
-            && entries[index].key == key) return index; // key found
+        if (entries[index].state == HASHENTRY_ACTIVE && entries[index].key == key) return index;
         index = (index + 1) % table->size;
         if (index == start) return -1; // not found
     }

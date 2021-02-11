@@ -153,8 +153,7 @@ Token *scanner_scan_token(Scanner *scanner, FILE *file, int *ln) {
             buf[bufind] = '\0';
             char *newLine = index(buf, '\n');
             if (newLine) *newLine = '\0'; // we only want to print first line
-            fprintf(stderr, "Expression exceeds maximum length (%i) ",
-                CHARBUF_SIZE);
+            fprintf(stderr, "Expression exceeds maximum length (%i) ", CHARBUF_SIZE);
             fprintf(stderr, "at line %i: %s\n", expLn, buf);
             return NULL;
         }
