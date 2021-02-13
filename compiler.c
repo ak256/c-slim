@@ -13,9 +13,10 @@
 #include "scanner.h"
 
 // enables all debugging output
-#define DEBUG_ALL 1
+#define DEBUG_ALL 0
 // enables token debugging output
 #define DEBUG_TOKENS 0
+#define DEBUG_STATEMENTS 1
 
 static const char *VERSION = "0.1.2";
 

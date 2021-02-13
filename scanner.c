@@ -52,17 +52,17 @@ void scanner_init(Scanner *scanner) {
         ___("^;", TOK_END);
         ___("^[-.~!$%^&*+=|:?]", TOK_OPERATOR);
         ___("^/[^/]", TOK_OPERATOR_SLASH);
-        ___("^,", TOK_LISTOK_SEPARATOR);
+        ___("^,", TOK_LIST_SEPARATOR);
         ___("^\\(", TOK_GROUP_OPEN);
         ___("^\\)", TOK_GROUP_CLOSE);
         ___("^\\{", TOK_BLOCK_OPEN);
         ___("^\\}", TOK_BLOCK_CLOSE);
         ___("^[a-zA-Z_][a-zA-Z0-9_]*[^a-zA-Z0-9_]$", TOK_IDENTIFIER);
-        ___("^([0-9]+)[.]([0-9]+)[^0-9]$", TOK_FLOATOK_LITERAL);
-        ___("^[0-9][^0-9]$", TOK_INTOK_LITERAL);
+        ___("^([0-9]+)[.]([0-9]+)[^0-9]$", TOK_FLOAT_LITERAL);
+        ___("^([0-9]+)[^0-9]$", TOK_INT_LITERAL);
         ___("^\"([^\\\"]|\\\\.)*\"", TOK_STRING_LITERAL);
-        ___("^\\[", TOK_LISTOK_OPEN);
-        ___("^\\]", TOK_LISTOK_CLOSE);
+        ___("^\\[", TOK_LIST_OPEN);
+        ___("^\\]", TOK_LIST_CLOSE);
         ___("^#include ", TOK_PP_INCLUDE);
         ___("^#define ", TOK_PP_DEFINE);
     }
@@ -118,13 +118,13 @@ Token *scanner_scan_token(Scanner *scanner, FILE *file, int *ln) {
 
             int tokenID = regexes[i].tokenID;
             int string_size = bufind + 2; // for token's text
-            if (tokenID < TOKSEC_CHAR_TERMINATED) {
+            if (tokenID > TOKSEC_CHAR_TERMINATED_START && tokenID < TOKSEC_CHAR_TERMINATED_END) {
                 // always ends with an extra unrelated char. trim this char
                 buf[bufind] = '\0';
                 string_size--;
                 // still want it to be scanned, though
                 fseek(file, -1, SEEK_CUR); 
-            } else if (tokenID > TOKSEC_PP) {
+            } else if (tokenID > TOKSEC_PP_START && tokenID < TOKSEC_PP_END) {
                 // preprocessor command. always ends with a space (ignore)
                 buf[bufind] = '\0';
                 string_size--;
