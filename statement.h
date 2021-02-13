@@ -6,12 +6,16 @@
 #define _STATEMENT_H_
 
 enum statements { 
-    STA_VAR_DECL,
-    STA_FUNC_DECL,
+    STMNT_BREAK,
+    STMNT_BREAK_LABEL,
+    STMNT_VAR_DECL,
+    STMNT_FUNC_DECL,
 };
 
 typedef struct Statement {
     int id; // enum statements
+    int arg_count;
+    char *args;
 } Statement;
 
 #endif

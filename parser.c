@@ -18,7 +18,7 @@ static char *tokens_to_line(Token *buf, int buflen);
 /* Initializes the given parser. */ 
 void parser_init(Parser *parser) {
     hashtable_init(&parser->included_files, 32, 0);
-    parser->tokenbuf = malloc(sizeof(Token) * PARSER_TOKENBUF_SIZE);
+    parser->tokenbuf = calloc(PARSER_TOKENBUF_SIZE, sizeof(Token));
     parser->tokenbuf_count = 0;
 }
 
@@ -87,21 +87,23 @@ static char *tokens_to_line(Token *buf, int buflen) {
  * calling this function.
  * Returns null until then.
  */
-Statement *parser_parse_statement(Parser *parser, SymTable *tbl, Token *token) {
+Statement *parser_parse_statement(Parser *parser, SymTable *symtable, Token *token) {
     assert(parser->tokenbuf_count < PARSER_TOKENBUF_SIZE,
         parser, "Exceeded maximum number of tokens per statement (%i)", PARSER_TOKENBUF_SIZE);
     
     // manage scopes
     if (token->id == TOK_BLOCK_OPEN) {
-        assert(!symtable_push_scope(tbl),
+        assert(!symtable_push_scope(symtable),
             parser, "Exceeded maximum number of nested scopes (%i)", SYMTABLE_MAX_SCOPES);
         return NULL;
     } else if(token->id == TOK_BLOCK_CLOSE) {
-        assert(!symtable_pop_scope(tbl),
+        assert(!symtable_pop_scope(symtable),
             parser, "Unexpected scope block closing statement, no scope to close!");
         return NULL;
     }
 
+    // free string memory when overwriting previous token
+    free(parser->tokenbuf[parser->tokenbuf_count].string); 
     // add token to buffer
     parser->tokenbuf[parser->tokenbuf_count] = *token;
     parser->tokenbuf_count++;
@@ -117,28 +119,54 @@ Statement *parser_parse_statement(Parser *parser, SymTable *tbl, Token *token) {
         // parse statement
         Token *buf = parser->tokenbuf;
         Statement *stmnt = NULL;
-        if (buf[0].id > TOKSEC_PP_START && buf[0].id < TOKSEC_PP_END) {
-            // preprocessor statement
-            switch (buf[0].id) {
-                case TOK_PP_INCLUDE: { // #include "path"
-                    assert(count == 2 && buf[1].id == TOK_STRING_LITERAL,
-                        parser, "Unexpected statement format (should be: %s \"path\";)", buf[0].string);
+        if (buf[0].id == TOK_PREPROCESSOR_CMD) {
+            // stmnt is always null for preprocessor commands
+            char *cmd = buf[0].string + 1; // skip '#' char
 
-                    char *string = strtok_to_string(buf[1].string);
-                    hashtable_add(&parser->included_files, hash(string), string);
-                    break;
-                }
-
-                case TOK_PP_DEFINE: // #define "name" "definition"
-                    // TODO
-                    break;
+            if (!strcmp("include", cmd)) {
+                // #include "path"
+                assert(count == 2 && buf[1].id == TOK_STRING_LITERAL,
+                    parser, "Invalid include statement! Expected: #include \"path\";");
+                char *string = strtok_to_string(buf[1].string);
+                hashtable_add(&parser->included_files, hash(string), string);
+                goto _RETURN_;
+            }
+            if (!strcmp("define", cmd)) {
+                // #define identifier "definition"
+                // TODO
+                goto _RETURN_;
             }
         } else {
             // other statement
             stmnt = malloc(sizeof(Statement));
             stmnt->id = -1;
+
+            if (buf[0].id == TOK_IDENTIFIER) {
+                char *identifier = buf[0].string;
+                if (!strcmp("break", identifier)) {
+                    assert(count <= 2,
+                        parser, "Invalid break statement! Expected: break; OR: break label;");
+
+                    if (count == 2) {
+                        // break label;
+                        assert(buf[1].id == TOK_IDENTIFIER,
+                            parser, "Invalid break statement! Expected label identifier, ex: break label;");
+                        assert(symtable_get(symtable, buf[1].string) != NULL,
+                            parser, "Undefined label identifier \"%s\"", buf[1].string);
+
+                        stmnt->id = STMNT_BREAK_LABEL;
+                        stmnt->args = buf[1].string;
+                        stmnt->arg_count = 1;
+                    } else {
+                        // break;
+                        stmnt->id = STMNT_BREAK;
+                    }
+                    goto _RETURN_;
+                }
+            }
         }
 
+        _RETURN_: // reset token buffer and return statement
         parser->tokenbuf_count = 0; // 'clear' buffer
         return stmnt;
     }

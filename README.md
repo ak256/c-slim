@@ -19,3 +19,4 @@ should still be decently efficient and work well as a language in general.
 * Namespaces by file; each file is its own scope and declarations from other files can be accessed like so: "otherfile:declaration". This is for better organization and no need for ridiculously long names to avoid conflicts (e.g. "mymodule\_function\_name").
 * Automatic referencing of structs passed to functions requiring struct pointers.
 * NO need to make declarations to use functions that are defined later in the file
+* Create block labels and "break" or "continue" from them, instead of "goto"

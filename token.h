@@ -21,11 +21,7 @@ enum tokens {
     TOK_LIST_OPEN,             // arrays
     TOK_LIST_CLOSE,
     TOK_OPERATOR, 
-    // anything below this line is a preprocessor command token
-    TOKSEC_PP_START,
-    TOK_PP_INCLUDE,
-    TOK_PP_DEFINE,
-    TOKSEC_PP_END
+    TOK_PREPROCESSOR_CMD
 };
 
 typedef struct Token {
@@ -33,5 +29,7 @@ typedef struct Token {
     int ln; // line number this token originated from
     char *string; // the text
 } Token;
+
+void token_deinit(Token *token);
 
 #endif

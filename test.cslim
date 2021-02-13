@@ -3,10 +3,11 @@
 int x = 99 / 3;
 
 {0,1,2, 3 ,4}
-993.41420
+993.41420;
+break;
 // this is a comment
 int x = struct.member; { 
-}#include "void"
+}#include "void";
 "123"
 "this is a \"quote\" \ntest"
 string y[];

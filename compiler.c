@@ -16,12 +16,13 @@
 #define DEBUG_ALL 0
 // enables token debugging output
 #define DEBUG_TOKENS 0
-#define DEBUG_STATEMENTS 1
+#define DEBUG_STATEMENTS 0
 
 static const char *VERSION = "0.1.2";
 
 void print_help() {
     printf("C-Slim compiler Help Page:\n");
+    printf("\targs: <file1> [file2, file3, ...]\n");
     printf("\t-h --help ... print this page\n");
     printf("\t-v --version ... print version\n");
 }
@@ -80,6 +81,7 @@ int main(int argc, char **argv) {
             #endif
 
             Statement *stmnt = parser_parse_statement(&parser, &symtable, token);
+            // token_deinit(token); // don't do this. we save token.string char* 
             free(token);
 
             if (stmnt != NULL) {
