@@ -1,21 +1,28 @@
-/* statement.h - a sequence of tokens that has a specific purpose
+/* statement.h
  * author: Andrew Klinge
 */
 
-#ifndef _STATEMENT_H_
-#define _STATEMENT_H_
+#ifndef __STATEMENT_H__
+#define __STATEMENT_H__
 
-enum statements { 
-    STMNT_BREAK,
-    STMNT_BREAK_LABEL,
-    STMNT_VAR_DECL,
-    STMNT_FUNC_DECL,
-};
+#include <stdbool.h>
 
+// a sequence of tokens with a specific purpose
 typedef struct Statement {
     int id; // enum statements
     int arg_count;
     char *args;
 } Statement;
+
+extern const Statement INVALID_STATEMENT;
+
+enum statements { 
+    STATEMENT_BREAK,
+    STATEMENT_BREAK_LABEL,
+    STATEMENT_VAR_DECL,
+    STATEMENT_FUNC_DECL
+};
+
+bool statement_valid(Statement *stmnt);
 
 #endif

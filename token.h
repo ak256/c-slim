@@ -1,35 +1,45 @@
-// token.h
+/* token.h
+ * author: Andrew Klinge
+*/
 
-#ifndef _TOKEN_H_
-#define _TOKEN_H_
+#ifndef __TOKEN_H__
+#define __TOKEN_H__
 
-enum tokens { 
-    TOKSEC_CHAR_TERMINATED_START,
-    TOK_INT_LITERAL,
-    TOK_FLOAT_LITERAL,
-    TOK_OPERATOR_SLASH,          // for differentiating between /'s and comments
-    TOK_IDENTIFIER,              // variable name, type, etc.
-    TOKSEC_CHAR_TERMINATED_END,  // token section
-    // anything above this line will have a regex terminator char (see scanner)
-    TOK_END,                     // end of statement
-    TOK_STRING_LITERAL,
-    TOK_LIST_SEPARATOR,        // a comma
-    TOK_GROUP_OPEN,              // for grouping things, order of operations
-    TOK_GROUP_CLOSE,
-    TOK_BLOCK_OPEN,              // a scope block
-    TOK_BLOCK_CLOSE,
-    TOK_LIST_OPEN,             // arrays
-    TOK_LIST_CLOSE,
-    TOK_OPERATOR, 
-    TOK_PREPROCESSOR_CMD
-};
+#include <stdbool.h>
 
 typedef struct Token {
-    int id; // token type (see enum tokens)
-    int ln; // line number this token originated from
-    char *string; // the text
+	int id; // token type (see enum tokens)
+	int ln; // line number this token originated from
+	char *string; // the text
 } Token;
 
-void token_deinit(Token *token);
+extern const Token INVALID_TOKEN;
+
+// TOKSEC is a token section. Currently tokens fit into one of these sections,
+// which the scanner uses to extract them differently
+enum tokens { 
+	TOKSEC_CHAR_TERMINATED_START,	// has a regex terminator character (see scanner)
+		TOKEN_INT_LITERAL,
+		TOKEN_FLOAT_LITERAL,
+		TOKEN_OPERATOR_SLASH,	 	// for differentiating between /'s and comments
+		TOKEN_IDENTIFIER,		  	// variable name, type, etc.
+	TOKSEC_CHAR_TERMINATED_END,  	
+
+	TOKEN_END,						// end of statement
+	TOKEN_EOF,						// represents valid end of token stream
+	TOKEN_STRING_LITERAL,
+	TOKEN_LIST_SEPARATOR,			// a comma
+	TOKEN_GROUP_OPEN,				// for grouping things, order of operations
+	TOKEN_GROUP_CLOSE,
+	TOKEN_BLOCK_OPEN,				// a scope block
+	TOKEN_BLOCK_CLOSE,
+	TOKEN_LIST_OPEN,				// arrays
+	TOKEN_LIST_CLOSE,
+	TOKEN_OPERATOR, 
+	TOKEN_PREPROCESSOR_CMD
+};
+
+bool token_valid(Token *token);
+bool token_char_terminated(int tokenID);
 
 #endif

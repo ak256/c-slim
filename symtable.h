@@ -2,29 +2,29 @@
  * author: Andrew Klinge
 */
 
-#ifndef _SYMTABLE_H_
-#define _SYMTABLE_H_
+#ifndef __SYMTABLE_H__
+#define __SYMTABLE_H__
 
 #include "utils/array.h"
 
 extern const int SYMTABLE_MAX_SCOPES;
 
 enum symbols {
-    SYM_VAR,
-    SYM_FUNC,
-    SYM_STRUCT
+	SYM_VAR,
+	SYM_FUNC,
+	SYM_STRUCT
 };
 
 /* group of code symbols within scopes. */
 typedef struct SymTable {
-    // Array scopes -> HashTable decl -> Sym decl
-    Array scopes; // lists of symbols, one per scope. highest scope is first
+	// Array scopes -> HashTable decl -> Sym decl
+	Array scopes; // lists of symbols, one per scope. highest scope is first
 } SymTable;
 
 /* an entry in the symbol table. */
 typedef struct Sym {
-    char id; // enum symbols
-    char *name;
+	char id; // enum symbols
+	char *name;
 } Sym;
 
 void symtable_init(SymTable *tbl);

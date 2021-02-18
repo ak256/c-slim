@@ -1,10 +1,17 @@
-/* hashtable.c - An implementation of a hashtable for generic use.
- *               Uses unsigned long as key type and void* as value type.
- *               Supports insertion, lookup, and deletion with ~constant
- *               time complexity. Uses Linear Probing.
+/* hashtable.c 
+ * An implementation of a hashtable for generic use. Uses unsigned long as
+ * key type and void* as value type. Supports insertion, lookup, and deletion 
+ * with ~O(1) time complexity. 
+ *
+ * HOWEVER, as a simple automatically-managed implementation, there may be 
+ * significant performance hits when either adding an entry or looking up 
+ * the index of an entry (as resizing of the hashtable or garbage collection 
+ * of deleted values can occur, respectively).
  *
  * Referred to https://www.codingalpha.com/hash-table-c-program/
  * by Tushar Soni, August 31, 2016 for supporting deletion.
+ *
+ * author: Andrew Klinge
 */
 
 #include <stdlib.h>
@@ -24,12 +31,12 @@ static void resize(HashTable *table);
  *      set to 0 if table should not have a size limit.
  */
 void hashtable_init(HashTable *table, int size, int max_size) {
-    if (size > max_size && max_size != 0) size = max_size; // bound size
-    table->entries = calloc(size, sizeof(HashEntry));
-    table->max_size = max_size;
-    table->size = size;
-    table->count = 0;
-    table->free_count = size;
+	if (size > max_size && max_size != 0) size = max_size; // bound size
+	table->entries = calloc(size, sizeof(HashEntry));
+	table->max_size = max_size;
+	table->size = size;
+	table->count = 0;
+	table->free_count = size;
 }
 
 /* Deinitializes the hashtable (frees any resources allocated during init)
@@ -37,47 +44,45 @@ void hashtable_init(HashTable *table, int size, int max_size) {
  * table - the hashtable to deinitialize.
  */
 void hashtable_deinit(HashTable *table) {
-    free(table->entries);
+	free(table->entries);
 }
 
 /* Adds the key-value pair to the given hashtable.
  * Best time: O(1). Average time: O(log n). Worst time: O(n) (rare, only
  * when table is full and must be resized. depends on init table size).
- * Returns: 1 if failed to add (table reached capacity), 0 if succeeded.
+ * Returns: whether succeeded
  *
  * table - the hashtable to add to
  * key - identifier for the value to be paired
  * value - the value associated with the key
  */
-int hashtable_add(HashTable *table, unsigned long key, void *value) {
-    // ensure hashtable load factor is not excessive
-    if ((double) table->count / table->size >= 0.5) {
-        if (table->size == table->max_size) return 1; // failed, table maxed 
-        // unfortunately, must re-hash every item into a double-size table.
-        resize(table);
-    }
+bool hashtable_add(HashTable *table, unsigned long key, void *value) {
+	// ensure hashtable load factor is not excessive
+	if ((double) table->count / table->size >= 0.5) {
+		if (table->size >= table->max_size) return false;
+		resize(table);
+	}
 
-    // find open index in table (or existing, same-key entry)
-    int index = key % table->size; // index in hashtable
-    HashEntry *entries = table->entries;
-    while (entries[index].state == HASHENTRY_ACTIVE && entries[index].key != key) {
-        // hash collision! use linear probing
-        index = (index + 1) % table->size;
-    }
-    
-    // add entry to table
-    if (entries[index].state != HASHENTRY_ACTIVE) {
-        // don't count again if simply updating existing entry
-        table->count++;
-        table->free_count--;
-    }
-    HashEntry entry = { 
-        .key = key, 
-        .value = value, 
-        .state = HASHENTRY_ACTIVE
-    };
-    entries[index] = entry;
-    return 0; // success
+	// find open index in table (or existing, same-key entry)
+	int index = key % table->size;
+	HashEntry *entries = table->entries;
+	while (entries[index].state == HASHENTRY_ACTIVE && entries[index].key != key) {
+		// hash collision! use linear probing
+		index = (index + 1) % table->size;
+	}
+	
+	// add entry to table
+	if (entries[index].state != HASHENTRY_ACTIVE) {
+		// don't count again if simply updating existing entry
+		table->count++;
+		table->free_count--;
+	}
+	HashEntry entry;
+	entry.key = key;
+	entry.value = value;
+	entry.state = HASHENTRY_ACTIVE;
+	entries[index] = entry;
+	return true;
 }
 
 /* Removes the entry of the key in the given table. Does nothing
@@ -89,41 +94,59 @@ int hashtable_add(HashTable *table, unsigned long key, void *value) {
  * key - the key of the entry to remove
  */
 void *hashtable_remove(HashTable *table, unsigned long key) {
-    int index = hashtable_index(table, key);
-    if (index == -1) return NULL; // not in table
+	int index = hashtable_index(table, key);
+	if (index == -1) return NULL;
 	
-    // remove
-    table->entries[index].state = HASHENTRY_DELETED;
-    table->count--;
-    return table->entries[index].value;
+	table->entries[index].state = HASHENTRY_DELETED;
+	table->count--;
+	return table->entries[index].value;
 }
 
 /* Fetches the value stored under the given key in the hashtable.
  * Returns: pointer to the value paired with the key, NULL if key 
- *      is not present in the table.
+ *	  is not present in the table.
  *
  * table - the hashtable to look in.
  * key - the hash key to the value to get.
  */
 void *hashtable_get(HashTable *table, unsigned long key) {
-    int index = hashtable_index(table, key);
-    if (index == -1) return NULL; // not in table
-    return table->entries[index].value;
+	int index = hashtable_index(table, key);
+	if (index == -1) return NULL;
+	return table->entries[index].value;
 }
 
 /* Fetches the value stored at the given index in the hashtable.
  * Returns: pointer to the value at the index, NULL if entry not 
- *      is not present at the index in the table.
+ *	  is not present at the index in the table.
  * NOTE: index should be obtained from hashtable_index() and must 
- *       be checked to make sure is valid!
+ *	   be checked to make sure is valid!
  *
  * table - the hashtable to look in.
  * index - the index in table to access
  */
 void *hashtable_get_at(HashTable *table, int index) {
-    if (table->entries[index].state != HASHENTRY_ACTIVE) 
-        return NULL; // no entry
-    return table->entries[index].value;
+	if (table->entries[index].state != HASHENTRY_ACTIVE) return NULL;
+	return table->entries[index].value;
+}
+
+/* Removes all entries marked as deleted and then rehashes all
+ * existing entries so they are accessible in time < O(n).
+ * Not really great because this incurs a performance hit, but this
+ * is a simple hashtable implementation that manages itself.
+ */
+static void garbage_collect(HashTable *table) {
+	for (int i = 0; i < table->size; i++) {
+		if (table->entries[i].state == HASHENTRY_DELETED) {
+			table->entries[i].state = HASHENTRY_FREE;
+		}
+	}
+	table->count = 0;
+	for (int i = 0; i < table->size; i++) {
+		if (table->entries[i].state != HASHENTRY_ACTIVE) continue;
+		table->entries[i].state = HASHENTRY_FREE;
+		hashtable_add(table, table->entries[i].key, table->entries[i].value);
+	}
+	table->free_count = table->size - table->count;
 }
 
 /* Finds and returns the index of the key's entry in the given hashtable.
@@ -133,46 +156,33 @@ void *hashtable_get_at(HashTable *table, int index) {
  * key - the key of the entry to find the index of
  */
 int hashtable_index(HashTable *table, unsigned long key) {
-    if (table->free_count == 0) {
-        // remove HASHENTRY_DELETED entries, so search is not O(n)
-        for (int i = 0; i < table->size; i++) {
-            if (table->entries[i].state == HASHENTRY_DELETED) {
-                table->entries[i].state = HASHENTRY_FREE;
-            }
-        }
-        // rehash entries so they are still accessible
-        table->count = 0;
-        for (int i = 0; i < table->size; i++) {
-            if (table->entries[i].state != HASHENTRY_ACTIVE) continue;
-            table->entries[i].state = HASHENTRY_FREE;
-            hashtable_add(table, table->entries[i].key, table->entries[i].value);
-        }
-        table->free_count = table->size - table->count;
-    }
+	if (table->free_count == 0)
+		garbage_collect(table);
 
-    HashEntry *entries = table->entries;
-    int index = key % table->size;
-    int start = index;
-    while (entries[index].state != HASHENTRY_FREE) {
-        if (entries[index].state == HASHENTRY_ACTIVE && entries[index].key == key) return index;
-        index = (index + 1) % table->size;
-        if (index == start) return -1; // not found
-    }
-    return -1; // key not found
+	HashEntry *entries = table->entries;
+	int index = key % table->size;
+	int start = index;
+	while (entries[index].state != HASHENTRY_FREE) {
+		if (entries[index].state == HASHENTRY_ACTIVE && entries[index].key == key) 
+			return index;
+		index = (index + 1) % table->size;
+		if (index == start) return -1;
+	}
+	return -1;
 }
 
 /* djb2: http://www.cse.yorku.ca/~oz/hash.html
  * by Dan Bernstein
  * Computes hash for a string.
  */
-unsigned long hash(char *str) {
-    unsigned long hash = 5381;
-    int c;
+unsigned long hash_string(char *str) {
+	unsigned long hash = 5381;
+	int c;
 
-    while (c = *str++)
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+	while (c = *str++)
+		hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
 
-    return hash;
+	return hash;
 }
 
 /* Doubles the size of the table and properly rehashes all entries
@@ -181,25 +191,21 @@ unsigned long hash(char *str) {
  * table - the table whose size to double.
  */
 static void resize(HashTable *table) {
-    int old_size = table->size;
-    int new_size = old_size * 2;
-    if (table->max_size != 0 && new_size > table->max_size) {
-        new_size = table->max_size;
-    }
+	int old_size = table->size;
+	int new_size = old_size * 2;
+	if (table->max_size != 0 && new_size > table->max_size) {
+		new_size = table->max_size;
+	}
 
-    HashEntry *new_entries = calloc(new_size, sizeof(HashEntry));
-    HashEntry *old_entries = table->entries;
-    table->entries = new_entries;
-    table->size = new_size;
-    table->free_count = table->size;
-    table->count = 0;
-
-    // rehash old entries into new table
-    for (int i = 0; i < old_size; i++) {
-        if (old_entries[i].state != HASHENTRY_ACTIVE) continue; // no entry
-        hashtable_add(table, old_entries[i].key, old_entries[i].value);
-    }
-
-    // delete old array
-    free(old_entries);
+	HashEntry *new_entries = calloc(new_size, sizeof(HashEntry));
+	HashEntry *old_entries = table->entries;
+	table->entries = new_entries;
+	table->size = new_size;
+	table->free_count = table->size;
+	table->count = 0;
+	for (int i = 0; i < old_size; i++) {
+		if (old_entries[i].state != HASHENTRY_ACTIVE) continue;
+		hashtable_add(table, old_entries[i].key, old_entries[i].value);
+	}
+	free(old_entries);
 }

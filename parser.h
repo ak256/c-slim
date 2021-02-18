@@ -2,8 +2,8 @@
  * author: Andrew Klinge
 */
 
-#ifndef _PARSER_H_
-#define _PARSER_H_
+#ifndef __PARSER_H__
+#define __PARSER_H__
 
 #include <stdio.h>
 
@@ -23,6 +23,6 @@ typedef struct Parser {
 
 void parser_init(Parser *parser);
 
-Statement *parser_parse_statement(Parser *parser, SymTable *tbl, Token *next_token);
+Statement parser_parse(Parser *parser, SymTable *tbl, Token *next_token);
 
 #endif
