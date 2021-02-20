@@ -14,15 +14,11 @@ typedef struct Statement {
     char *args;
 } Statement;
 
-extern const Statement INVALID_STATEMENT;
-
 enum statements { 
     STATEMENT_BREAK,
     STATEMENT_BREAK_LABEL,
     STATEMENT_VAR_DECL,
     STATEMENT_FUNC_DECL
 };
-
-bool statement_valid(Statement *stmnt);
 
 #endif

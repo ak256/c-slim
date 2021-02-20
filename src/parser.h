@@ -15,6 +15,12 @@
 // size of input tokens buffer
 extern const int PARSER_TOKENBUF_SIZE;
 
+enum parse_code {
+	PARSE_NULL,
+	PARSE_ERROR,
+	PARSE_VALID
+};
+
 typedef struct Parser {
     HashTable included_files;
     Token *tokenbuf;
@@ -23,6 +29,6 @@ typedef struct Parser {
 
 void parser_init(Parser *parser);
 
-Statement parser_parse(Parser *parser, SymTable *tbl, Token *next_token);
+int parser_parse(Parser *parser, SymTable *tbl, Token *next_token, Statement *output);
 
 #endif

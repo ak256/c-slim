@@ -12,12 +12,12 @@
 #include "token.h"
 
 // enables all debugging output
-#define DEBUG_ALL 0
+#define DEBUG_ALL 1
 // enables specific debugging output
 #define DEBUG_TOKENS 0
 #define DEBUG_STATEMENTS 0
 
-const char *VERSION = "0.2.0";
+const char *VERSION = "0.2.1";
 
 void compiler_init(Compiler *compiler) {
 	symtable_init(&compiler->symtable);
@@ -26,10 +26,10 @@ void compiler_init(Compiler *compiler) {
 }
 
 static void print_help() {
-	printf("C-Slim compiler help page:\n");
+	printf("C-Slim compiler usage:\n");
 	printf("\targs: <file1> [file2, file3, ...]\n");
-	printf("\t-h --help ... print this page\n");
-	printf("\t-v --version ... print version\n");
+	printf("\t--help ... print this page\n");
+	printf("\t--version ... print version\n");
 }
 
 static void print_version() {
@@ -37,21 +37,26 @@ static void print_version() {
 }
 
 /* Parses command-line arguments for compiler program.
- * Returns: the number of input files returned
+ * Returns: the number of input files returned.
  * 
  * input_files - array to store input file names in
  * verbose - will store whether --verbose flag was present
  */
-static int parse_program_args(int arg_count, char **args, char **input_files, bool *verbose) {
+static int parse_program_args(int arg_count, char **args, char **input_files) {
 	int input_files_count = 0;
 	for (int i = 1; i < arg_count; i++) {
 		char *arg = args[i];
-		if (strcmp("-h", arg) == 0 || strcmp("--help", arg) == 0) {
-			print_help();
-		} else if (strcmp("--version", arg) == 0) {
-			print_version();
-		} else if (strcmp("-v", arg) == 0 || strcmp("--verbose", arg) == 0) {
-			*verbose = true;
+		if (arg[0] == '-') {
+			if (strcmp("--help", arg) == 0) {
+				print_help();
+				return 0;
+			} else if (strcmp("--version", arg) == 0) {
+				print_version();
+				return 0;
+			} else {
+				fprintf(stderr, "Unknown option %s\nTry --help\n", arg);
+				return 0;
+			}
 		} else {
 			input_files[input_files_count] = arg;
 			input_files_count++;
@@ -72,9 +77,11 @@ bool compiler_compile(Compiler *compiler, char *file_name) {
 
 	int ln = 1; // line number
 	bool success = false;
-	while (1) {
-		Token token = scanner_scan(&compiler->scanner, file, &ln);
-		if (!token_valid(&token)) break;
+	while (true) {
+		Token token;
+		int scan_result = scanner_scan(&compiler->scanner, file, &ln, &token);
+		if (scan_result == SCAN_ERROR) break;
+		if (scan_result == SCAN_NULL) continue;
 		if (token.id == TOKEN_EOF) {
 			success = true;
 			break;
@@ -82,10 +89,12 @@ bool compiler_compile(Compiler *compiler, char *file_name) {
 		if (DEBUG_TOKENS || DEBUG_ALL)
 			printf("@%i [%i] %s\n", ln, token.id, token.string);
 
-		Statement stmnt = parser_parse(&compiler->parser, &compiler->symtable, &token);
-		if (!statement_valid(&stmnt)) break;
+		Statement statement;
+		int parse_result = parser_parse(&compiler->parser, &compiler->symtable, &token, &statement);
+		if (parse_result == PARSE_ERROR) break;
+		if (parse_result == PARSE_NULL) continue;
 		if (DEBUG_STATEMENTS || DEBUG_ALL)
-			printf("@%i  |-> [%i]\n", ln, stmnt.id);
+			printf("@%i  |-> [%i]\n", ln, statement.id);
 	}
 	fclose(file);
 	return success;
@@ -98,9 +107,8 @@ int main(int argc, char **argv) {
 	}
 	
 	char *input_files[argc - 1];
-	bool verbose;
-	int input_files_count = parse_program_args(argc, argv, input_files, &verbose);
-	if (input_files_count == 0) return EXIT_SUCCESS;
+	int input_files_count = parse_program_args(argc, argv, input_files);
+	if (input_files_count == 0) return EXIT_FAILURE;
 	
 	Compiler compiler;
 	compiler_init(&compiler);
@@ -112,13 +120,11 @@ int main(int argc, char **argv) {
 	}
 
 	if (compiled_count == input_files_count) {
-		if (verbose)
-			printf("SUCCESS! Compiled all %i input files\n", input_files_count);
+		printf("SUCCESS! Compiled all %i input files\n", input_files_count);
 		return EXIT_SUCCESS;
 	} else {
-		if (verbose) 
-			printf("FAILURE! Successfully compiled %i out of %i input files\n",
-				compiled_count, input_files_count);
+		printf("FAILURE! Compiled %i out of %i input files\n",
+			compiled_count, input_files_count);
 		return EXIT_FAILURE;
 	}
 }
