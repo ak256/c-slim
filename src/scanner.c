@@ -56,7 +56,7 @@ void scanner_init(Scanner *scanner) {
 	scanner->buf = malloc(sizeof(char) * CHARBUF_SIZE);
 	if (regex_count == 0) {
 		register_regex(TOKEN_END_OF_STATEMENT, "^;");
-		register_regex(TOKEN_OPERATOR, "^([-.~!$%^&*+=|:?])|(/[^/]))");
+		register_regex(TOKEN_OPERATOR, "^([-.~!$%^&*+=|:?])|(/[^/])");
 		register_regex(TOKEN_LIST_SEPARATOR, "^,");
 		register_regex(TOKEN_GROUP_OPEN, "^\\(");
 		register_regex(TOKEN_GROUP_CLOSE, "^\\)");
@@ -77,7 +77,7 @@ void scanner_init(Scanner *scanner) {
  * Variable arguments at end are for error_string format args. 
  * Returns: whether the check failed (condition was false)
  */
-static bool check(bool condition, char *buf, int buflen, int ln, const char *error_string, ...) {
+static bool assert(bool condition, char *buf, int buflen, int ln, const char *error_string, ...) {
 	if (condition) return false;
 
 	char *next_newline = index(buf, '\n');
@@ -161,11 +161,11 @@ int scanner_scan(Scanner *scanner, FILE *file, int *ln, Token *output) {
 			output->string = token_string;
 			return SCAN_VALID;
 		}
-		if (check(c == EOF, buf, buf_index, start_ln, "Invalid expression"))
+		if (assert(c != EOF, buf, buf_index, start_ln, "Invalid expression"))
 			return SCAN_ERROR;
 
 		buf_index++;
-		if (check(buf_index >= CHARBUF_SIZE - 2, buf, buf_index, start_ln,
+		if (assert(buf_index < CHARBUF_SIZE - 2, buf, buf_index, start_ln,
 			"Expression exceeds maximum length (%i)", CHARBUF_SIZE))
 			return SCAN_ERROR;
 	}

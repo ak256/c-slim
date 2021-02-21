@@ -51,7 +51,7 @@ static void print_line_info(Parser *parser) {
  * Variable arguments at end are for error_string format args. 
  * Returns: whether the check failed (condition was false)
  */
-static bool check(bool condition, Parser *parser, const char *error_string, ...) {
+static bool assert(bool condition, Parser *parser, const char *error_string, ...) {
 	if (condition) return false;
 
 	va_list va;
@@ -91,12 +91,13 @@ static char *tokens_to_line(Token *buf, int buflen) {
  * See parent parser_parse(). 
  */
 static inline int parser_parse_preprocessor_cmd(Parser *parser, SymTable *symtable) {
+	const int token_count = parser->tokenbuf_count - 1;
 	const Token *buf = parser->tokenbuf;
 	const char *cmd = buf[0].string + 1;
 
 	if (strcmp("include", cmd) == 0) {
-		if (check(parser->tokenbuf_count == 2 && buf[1].id == TOKEN_STRING_LITERAL, parser,
-			"Invalid include statement! Expected: `#include \"path\";`"))
+		if (assert(token_count == 2 && buf[1].id == TOKEN_STRING_LITERAL, parser,
+			"Invalid include statement (expected `#include \"path\";`)"))
 			return PARSE_ERROR;
 
 		char *path = buf[1].string;
@@ -115,18 +116,19 @@ static inline int parser_parse_preprocessor_cmd(Parser *parser, SymTable *symtab
  * See parent parser_parse(). 
  */
 static inline int parser_parse_word_prefixed(Parser *parser, SymTable *symtable, Statement *output) {
+	const int token_count = parser->tokenbuf_count - 1;
 	const Token *buf = parser->tokenbuf;
 	const char *identifier = buf[0].string;
 
 	if (strcmp("break", identifier) == 0) {
-		if (check(parser->tokenbuf_count <= 2, parser, 
-			"Invalid break statement! Expected: `break;` OR: `break label;`"))
+		if (assert(token_count <= 2, parser, 
+			"Invalid break statement (expected `break;` or `break label;`)"))
 			return PARSE_ERROR;
 
-		if (parser->tokenbuf_count == 2) {
-			if (check(buf[1].id == TOKEN_IDENTIFIER, parser,
-				"Invalid break statement! Expected label identifier, ex: `break label;`") ||
-				check(symtable_get(symtable, buf[1].string) != NULL, parser,
+		if (token_count == 2) {
+			if (assert(buf[1].id == TOKEN_IDENTIFIER, parser,
+				"Invalid break statement (expected label identifier, ex: `break label;`)") ||
+				assert(symtable_get(symtable, buf[1].string) != NULL, parser,
 				"Undefined label identifier: %s", buf[1].string))
 				return PARSE_ERROR;
 
@@ -156,18 +158,18 @@ static inline int parser_parse_word_prefixed(Parser *parser, SymTable *symtable,
  * output - where to store the resulting statement data
  */
 int parser_parse(Parser *parser, SymTable *symtable, Token *token, Statement *output) {
-	if (check(parser->tokenbuf_count < PARSER_TOKENBUF_SIZE, parser, 
+	if (assert(parser->tokenbuf_count < PARSER_TOKENBUF_SIZE, parser, 
 		"Exceeded maximum number of tokens per statement (%i)", PARSER_TOKENBUF_SIZE))
 		return PARSE_ERROR;
 	
 	if (token->id == TOKEN_BLOCK_OPEN) {
-		if (check(!symtable_push_scope(symtable), parser, 
+		if (assert(!symtable_push_scope(symtable), parser, 
 			"Exceeded maximum number of nested scopes (%i)", SYMTABLE_MAX_SCOPES))
 			return PARSE_ERROR;
 		else
 			return PARSE_NULL;
 	} else if(token->id == TOKEN_BLOCK_CLOSE) {
-		if (check(!symtable_pop_scope(symtable), parser, 
+		if (assert(!symtable_pop_scope(symtable), parser, 
 			"Unexpected scope block closing statement, no scope to close!"))
 			return PARSE_ERROR;
 		else

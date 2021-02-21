@@ -17,7 +17,7 @@
 #define DEBUG_TOKENS 0
 #define DEBUG_STATEMENTS 0
 
-const char *VERSION = "0.2.1";
+const char *VERSION = "0.2.2";
 
 void compiler_init(Compiler *compiler) {
 	symtable_init(&compiler->symtable);
