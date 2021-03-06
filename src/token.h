@@ -7,11 +7,11 @@
 
 #include <stdbool.h>
 
-typedef struct Token {
+struct Token {
 	int id; // see enum tokens
 	int ln; // line number this token originated from
-	char *string; // the code
-} Token;
+	char *string; // the origin text 
+};
 
 enum tokens { 
 	TOKSEC_END_MARKED_BY_NEXT_START,

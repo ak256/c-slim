@@ -12,12 +12,11 @@
 #include "token.h"
 #include "symtable.h"
 
-const int PARSER_TOKENBUF_SIZE = 4096;
+#define PARSER_TOKENBUF_SIZE 4096
 
-static char *tokens_to_line(Token *buf, int buflen);
+static char *tokens_to_line(struct Token *buf, int buflen);
 
-/* Initializes the given parser. */ 
-void parser_init(Parser *parser) {
+void parser_init(struct Parser *parser) {
 	hashtable_init(&parser->included_files, 32, 0);
 	parser->tokenbuf = malloc(PARSER_TOKENBUF_SIZE * sizeof(Token));
 	parser->tokenbuf_count = 0;
@@ -40,14 +39,13 @@ static char *strtok_to_string(char *strtok) {
 }
 
 /* Prints the parser's current line info (formatted to be appended after some message). */
-static void print_line_info(Parser *parser) {
+static void print_line_info(struct Parser *parser) {
 	char *line_string = tokens_to_line(parser->tokenbuf, parser->tokenbuf_count);
 	fprintf(stderr, " at line %i: \n\t%s\n", parser->tokenbuf[0].ln, line_string);
 	free(line_string);
 }
 
-/* Checks if the condition is true, and if not, then prints the error message,
- * along with the current line and token information.
+/* Checks if the condition is true, and if not, then prints the error message, along with the current line and token information.
  * Variable arguments at end are for error_string format args. 
  * Returns: whether the check failed (condition was false)
  */
@@ -66,7 +64,7 @@ static bool assert(bool condition, Parser *parser, const char *error_string, ...
 /* Rebuilds code line from list of tokens.
  * Note: inserts spaces between individual tokens.
  */
-static char *tokens_to_line(Token *buf, int buflen) {
+static char *tokens_to_line(struct Token *buf, int buflen) {
 	int length;
 	for (int i = 0; i < buflen; i++) {
 		length += strlen(buf[i].string) + 1; // +1 for spacing
@@ -87,77 +85,17 @@ static char *tokens_to_line(Token *buf, int buflen) {
 	return string;
 }
 
-/* Parses a preprocessor command and executes it.
- * See parent parser_parse(). 
- */
-static inline int parser_parse_preprocessor_cmd(Parser *parser, SymTable *symtable) {
-	const int token_count = parser->tokenbuf_count - 1;
-	const Token *buf = parser->tokenbuf;
-	const char *cmd = buf[0].string + 1;
-
-	if (strcmp("include", cmd) == 0) {
-		if (assert(token_count == 2 && buf[1].id == TOKEN_STRING_LITERAL, parser,
-			"Invalid include statement (expected `#include \"path\";`)"))
-			return PARSE_ERROR;
-
-		char *path = buf[1].string;
-		char *string = strtok_to_string(path);
-		hashtable_add(&parser->included_files, hash_string(string), string);
-	} else if (strcmp("define", cmd) == 0) {
-		// #define identifier definition...
-		// TODO
-	}
-
-	parser->tokenbuf_count = 0;
-	return PARSE_NULL;
-}
-
-/* Parses a statement that begins with a word/identifier.
- * See parent parser_parse(). 
- */
-static inline int parser_parse_word_prefixed(Parser *parser, SymTable *symtable, Statement *output) {
-	const int token_count = parser->tokenbuf_count - 1;
-	const Token *buf = parser->tokenbuf;
-	const char *identifier = buf[0].string;
-
-	if (strcmp("break", identifier) == 0) {
-		if (assert(token_count <= 2, parser, 
-			"Invalid break statement (expected `break;` or `break label;`)"))
-			return PARSE_ERROR;
-
-		if (token_count == 2) {
-			if (assert(buf[1].id == TOKEN_IDENTIFIER, parser,
-				"Invalid break statement (expected label identifier, ex: `break label;`)") ||
-				assert(symtable_get(symtable, buf[1].string) != NULL, parser,
-				"Undefined label identifier: %s", buf[1].string))
-				return PARSE_ERROR;
-
-			output->id = STATEMENT_BREAK_LABEL;
-			output->args = buf[1].string;
-			output->arg_count = 1;
-			return PARSE_VALID;
-		} else {
-			output->id = STATEMENT_BREAK;
-			output->args = NULL;
-			output->arg_count = 0;
-			return PARSE_VALID;
-		}
-	}
-
-	return PARSE_ERROR;
-}
-
 /* Gets the next statement given repeated calls providing a sequence of tokens.
  * Automatically updates the symbol table as well.
  * Returns:
- *   PARSE_NULL ...  no token scanned yet
- *   PARSE_ERROR ... error, invalid/illegal token detected
- *   PARSE_VALID ... valid token scanned
+ *   PARSE_NULL ...  no statement parsed yet
+ *   PARSE_ERROR ... error, invalid/illegal statement detected
+ *   PARSE_VALID ... valid statement parsed
  *
  * token - the next token in the sequence
  * output - where to store the resulting statement data
  */
-int parser_parse(Parser *parser, SymTable *symtable, Token *token, Statement *output) {
+int parser_parse(struct Parser *parser, struct SymTable *symtable, struct Token *token, struct Statement *output) {
 	if (assert(parser->tokenbuf_count < PARSER_TOKENBUF_SIZE, parser, 
 		"Exceeded maximum number of tokens per statement (%i)", PARSER_TOKENBUF_SIZE))
 		return PARSE_ERROR;
@@ -166,14 +104,12 @@ int parser_parse(Parser *parser, SymTable *symtable, Token *token, Statement *ou
 		if (assert(!symtable_push_scope(symtable), parser, 
 			"Exceeded maximum number of nested scopes (%i)", SYMTABLE_MAX_SCOPES))
 			return PARSE_ERROR;
-		else
-			return PARSE_NULL;
+		return PARSE_NULL;
 	} else if(token->id == TOKEN_BLOCK_CLOSE) {
 		if (assert(!symtable_pop_scope(symtable), parser, 
 			"Unexpected scope block closing statement, no scope to close!"))
 			return PARSE_ERROR;
-		else
-			return PARSE_NULL;
+		return PARSE_NULL;
 	}
 
 	// free string memory when overwriting previous token
@@ -188,16 +124,71 @@ int parser_parse(Parser *parser, SymTable *symtable, Token *token, Statement *ou
 		}
 		
 		switch (parser->tokenbuf[0].id) {
-		case TOKEN_PREPROCESSOR_CMD:
-			return parser_parse_preprocessor_cmd(parser, symtable);
-		case TOKEN_IDENTIFIER:
-			return parser_parse_word_prefixed(parser, symtable, output);
+		case TOKEN_PREPROCESSOR_CMD: {
+			const int token_count = parser->tokenbuf_count - 1;
+			const struct Token *buf = parser->tokenbuf;
+			const char *cmd = buf[0].string + 1;
+
+			if (strcmp("include", cmd) == 0) {
+				if (assert(token_count == 2 && buf[1].id == TOKEN_STRING_LITERAL, parser,
+					"Invalid include statement (expected `#include \"path\";`)"))
+					return PARSE_ERROR;
+
+				char *path = buf[1].string;
+				char *string = strtok_to_string(path);
+				hashtable_add(&parser->included_files, hash_string(string), string);
+			} else if (strcmp("define", cmd) == 0) {
+				// #define identifier definition...
+				// TODO
+			}
+
+			parser->tokenbuf_count = 0;
+			return PARSE_NULL;
+		}
+		case TOKEN_IDENTIFIER: {
+			const int token_count = parser->tokenbuf_count - 1;
+			const Token *buf = parser->tokenbuf;
+			const char *identifier = buf[0].string;
+
+			if (strcmp("break", identifier) == 0) {
+				if (assert(token_count <= 2, parser, 
+					"Invalid break statement (expected `break;` or `break label;`)"))
+					return PARSE_ERROR;
+
+				if (token_count == 2) {
+					if (assert(buf[1].id == TOKEN_IDENTIFIER, parser,
+						"Invalid break statement (expected label identifier, ex: `break label;`)") ||
+						assert(symtable_get(symtable, buf[1].string) != NULL, parser,
+						"Undefined label identifier: %s", buf[1].string))
+						return PARSE_ERROR;
+
+					output->id = STATEMENT_BREAK_LABEL;
+					output->args = buf[1].string;
+					output->arg_count = 1;
+					return PARSE_VALID;
+				} else {
+					output->id = STATEMENT_BREAK;
+					output->args = NULL;
+					output->arg_count = 0;
+					return PARSE_VALID;
+				}
+			} else {
+				if (token_count >= 2) {
+					if (buf[0].id == TOKEN_IDENTIFIER && buf[1].id == TOKEN_IDENTIFIER) {
+						if (token_count == 2) {
+							// uninitialized variable declaration
+							// TODO
+						}
+					}
+				}
+			}
+			// fall through to default case, error
+		}
 		default:
-			fprintf(stderr, "Unknown/invalid statement");
+			fprintf(stderr, "Invalid statement");
 			print_line_info(parser);
 			return PARSE_ERROR;
 		}
-	} else {
-		return PARSE_NULL;
 	}
+	return PARSE_NULL;
 }

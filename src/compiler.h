@@ -11,14 +11,14 @@
 #include "scanner.h"
 #include "parser.h"
 
-typedef struct Compiler {
-	SymTable symtable;
-	Scanner scanner;
-	Parser parser;
-} Compiler;
+struct Compiler {
+	struct SymTable symtable;
+	struct Scanner scanner;
+	struct Parser parser;
+};
 
-void compiler_init(Compiler *compiler);
+void compiler_init(struct Compiler *compiler);
 
-bool compiler_compile(Compiler *compiler, char *file_name);
+bool compiler_compile(struct Compiler *compiler, char *file_name);
 
 #endif

@@ -1,9 +1,13 @@
-// scanner.h
+/* scanner.h
+ * author: Andrew Klinge
+ */
 
 #ifndef __SCANNER_H__
 #define __SCANNER_H__
 
 #include <stdio.h>
+#include <regex.h>
+
 #include "token.h"
 
 enum scan_code {
@@ -12,12 +16,19 @@ enum scan_code {
 	SCAN_VALID
 };
 
-typedef struct Scanner {
+struct TokenRegex {
+	int tokenID;
+	regex_t regex;
+}
+
+struct Scanner {
+	struct TokenRegex *token_regexes;
+	int token_regexes_count;
     char *buf; // input character buffer
-} Scanner;
+};
 
-void scanner_init(Scanner *scanner);
+void scanner_init(struct Scanner *scanner);
 
-int scanner_scan(Scanner *scanner, FILE *file, int *ln, Token *output);
+int scanner_scan(struct Scanner *scanner, FILE *file, int *ln, struct Token *output);
 
 #endif

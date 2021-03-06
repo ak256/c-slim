@@ -12,23 +12,20 @@
 #include "statement.h"
 #include "utils/hashtable.h"
 
-// size of input tokens buffer
-extern const int PARSER_TOKENBUF_SIZE;
-
 enum parse_code {
 	PARSE_NULL,
 	PARSE_ERROR,
 	PARSE_VALID
 };
 
-typedef struct Parser {
-    HashTable included_files;
-    Token *tokenbuf;
+struct Parser {
+    struct HashTable included_files;
+    struct Token *tokenbuf;
     int tokenbuf_count;
-} Parser;
+};
 
-void parser_init(Parser *parser);
+void parser_init(struct Parser *parser);
 
-int parser_parse(Parser *parser, SymTable *tbl, Token *next_token, Statement *output);
+int parser_parse(struct Parser *parser, struct SymTable *tbl, struct Token *next_token, struct Statement *output);
 
 #endif
