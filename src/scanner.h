@@ -19,7 +19,7 @@ enum scan_code {
 struct TokenRegex {
 	int tokenID;
 	regex_t regex;
-}
+};
 
 struct Scanner {
 	struct TokenRegex *token_regexes;
@@ -27,7 +27,7 @@ struct Scanner {
     char *buf; // input character buffer
 };
 
-void scanner_init(struct Scanner *scanner);
+void scanner_init(struct Scanner *scanner, struct TokenRegex *token_regexes, int token_regexes_count);
 
 int scanner_scan(struct Scanner *scanner, FILE *file, int *ln, struct Token *output);
 

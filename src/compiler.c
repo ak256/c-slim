@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <regex.h>
 
 #include "compiler.h"
 #include "token.h"
@@ -18,12 +19,8 @@
 #define DEBUG_STATEMENTS 0
 
 #define VERSION "0.2.3"
-
-void compiler_init(struct Compiler *compiler, struct TokenRegex *token_regexes, int token_regexes_count) {
-	scanner_init(&compiler->scanner, token_regexes, token_regexes_count);
-	parser_init(&compiler->parser);
-	symtable_init(&compiler->symtable);
-}
+#define REGEX_FLAGS (REG_EXTENDED | REG_NOSUB)
+#define CSLIM_TOKEN_REGEXES_COUNT 15
 
 /* Compiles the file with the given file path to bytecode at the output path.
  * Returns: whether successful.
@@ -74,8 +71,10 @@ static inline void print_help() {
  * regexstr - the regular expression to match code
  */
 static struct TokenRegex create_token_regex(int tokenID, const char *regexstr) {
-	TokenRegex tr;
-	if (regcomp(&tr.regex, regexstr, REGEX_FLAGS)) {
+	struct TokenRegex tr;
+	tr.tokenID = tokenID;
+	int error = regcomp(&tr.regex, regexstr, REGEX_FLAGS);
+	if (error) {
 		fprintf(stderr, "Regex creation failed! %s\n", regexstr);
 		const int errStrSize = 1024;
 		char errStr[errStrSize];
@@ -110,26 +109,28 @@ int main(int arg_count, char **args) {
 		return EXIT_FAILURE;
 	}
 
-	const int token_regexes_count = 0;
-	const struct TokenRegex token_regexes[token_regexes_count] = {
-		create_token_regex(TOKEN_END_OF_STATEMENT, "^;");
-		create_token_regex(TOKEN_OPERATOR, "^([-.~!$%^&*+=|:?])|(/[^/])");
-		create_token_regex(TOKEN_LIST_SEPARATOR, "^,");
-		create_token_regex(TOKEN_GROUP_OPEN, "^\\(");
-		create_token_regex(TOKEN_GROUP_CLOSE, "^\\)");
-		create_token_regex(TOKEN_BLOCK_OPEN, "^\\{");
-		create_token_regex(TOKEN_BLOCK_CLOSE, "^\\}");
-		create_token_regex(TOKEN_IDENTIFIER, "^[a-zA-Z_][a-zA-Z0-9_]*[^a-zA-Z0-9_]$");
-		create_token_regex(TOKEN_FLOAT_LITERAL, "^([0-9]+)[.]([0-9]+)[^0-9]$");
-		create_token_regex(TOKEN_INT_LITERAL, "^([0-9]+)[^0-9.]$");
-		create_token_regex(TOKEN_STRING_LITERAL, "^\"([^\\\"]|\\\\.)*\"");
-		create_token_regex(TOKEN_LIST_OPEN, "^\\[");
-		create_token_regex(TOKEN_LIST_CLOSE, "^\\]");
-		create_token_regex(TOKEN_PREPROCESSOR_CMD, "^#([a-zA-Z]+) ");
+	struct TokenRegex cslim_token_regexes[CSLIM_TOKEN_REGEXES_COUNT] = {
+		create_token_regex(TOKEN_END_OF_STATEMENT, "^;"),
+		create_token_regex(TOKEN_OPERATOR_DIVIDE, "^/[^/]"),
+		create_token_regex(TOKEN_OPERATOR, "^[-.~!$%^&*+=|:?]"),
+		create_token_regex(TOKEN_LIST_SEPARATOR, "^,"),
+		create_token_regex(TOKEN_GROUP_OPEN, "^\\("),
+		create_token_regex(TOKEN_GROUP_CLOSE, "^\\)"),
+		create_token_regex(TOKEN_BLOCK_OPEN, "^\\{"),
+		create_token_regex(TOKEN_BLOCK_CLOSE, "^\\}"),
+		create_token_regex(TOKEN_IDENTIFIER, "^[a-zA-Z_][a-zA-Z0-9_]*[^a-zA-Z0-9_]$"),
+		create_token_regex(TOKEN_FLOAT_LITERAL, "^([0-9]+)[.]([0-9]+)[^0-9]$"),
+		create_token_regex(TOKEN_INT_LITERAL, "^([0-9]+)[^0-9.]$"),
+		create_token_regex(TOKEN_STRING_LITERAL, "^\"([^\\\"]|\\\\.)*\""),
+		create_token_regex(TOKEN_LIST_OPEN, "^\\["),
+		create_token_regex(TOKEN_LIST_CLOSE, "^\\]"),
+		create_token_regex(TOKEN_PREPROCESSOR_CMD, "^#([a-zA-Z]+) ")
 	};
 
 	struct Compiler compiler;
-	compiler_init(&compiler, token_regexes, token_regexes_count);
+	scanner_init(&compiler.scanner, cslim_token_regexes, CSLIM_TOKEN_REGEXES_COUNT);
+	parser_init(&compiler.parser);
+	symtable_init(&compiler.symtable);
 
 	int compiled_count = 0;
 	for (int i = 0; i < input_files_count; i++) {

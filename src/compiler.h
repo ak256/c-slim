@@ -17,8 +17,6 @@ struct Compiler {
 	struct Parser parser;
 };
 
-void compiler_init(struct Compiler *compiler);
-
 bool compiler_compile(struct Compiler *compiler, char *file_name);
 
 #endif

@@ -16,7 +16,6 @@
 
 // maximum expression length (in chars for a token)
 #define CHARBUF_SIZE 4096
-#define REGEX_FLAGS (REG_EXTENDED | REG_NOSUB)
 
 void scanner_init(struct Scanner *scanner, struct TokenRegex *token_regexes, int token_regexes_count) {
 	scanner->buf = malloc(sizeof(char) * CHARBUF_SIZE);
@@ -97,8 +96,8 @@ int scanner_scan(struct Scanner *scanner, FILE *file, int *ln, struct Token *out
 		buf[buf_index + 1] = '\0';
 		
 		for (int i = 0; i < scanner->token_regexes_count; i++) {
-			const TokenRegex *tr = &scanner->token_regexes[i];
-			if (regexec(tr, buf, 0, NULL, 0) != 0) continue;
+			struct TokenRegex *tr = &scanner->token_regexes[i];
+			if (regexec(&tr->regex, buf, 0, NULL, 0) != 0) continue;
 
 			int token_string_size = buf_index + 2;
 			if (token_end_marked_by_next(tr->tokenID)) {

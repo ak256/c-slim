@@ -1002,6 +1002,7 @@
 #include "basic.cslim";
 #include "basic.cslim";
 #include "basic.cslim";
+// test comment
 int x = 99 / 3;
 
 {0,1,2, 3 ,4}

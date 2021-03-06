@@ -13,6 +13,9 @@ debug: $(FLAGS) += $(DEBUG_FLAGS)
 debug: $(TARGET)
 	gdb --args $(TARGET)
 
+test:
+	./$(TARGET) --version test.cslim
+
 $(TARGET): $(OBJECTS)
 	$(CC) -o $@ $(OBJECTS) $(LINK_FLAGS)
 

@@ -18,7 +18,7 @@ static char *tokens_to_line(struct Token *buf, int buflen);
 
 void parser_init(struct Parser *parser) {
 	hashtable_init(&parser->included_files, 32, 0);
-	parser->tokenbuf = malloc(PARSER_TOKENBUF_SIZE * sizeof(Token));
+	parser->tokenbuf = malloc(PARSER_TOKENBUF_SIZE * sizeof(struct Token));
 	parser->tokenbuf_count = 0;
 
 	// so we don't free random memory when overwriting in tokenbuf
@@ -49,7 +49,7 @@ static void print_line_info(struct Parser *parser) {
  * Variable arguments at end are for error_string format args. 
  * Returns: whether the check failed (condition was false)
  */
-static bool assert(bool condition, Parser *parser, const char *error_string, ...) {
+static bool assert(bool condition, struct Parser *parser, const char *error_string, ...) {
 	if (condition) return false;
 
 	va_list va;
@@ -147,7 +147,7 @@ int parser_parse(struct Parser *parser, struct SymTable *symtable, struct Token 
 		}
 		case TOKEN_IDENTIFIER: {
 			const int token_count = parser->tokenbuf_count - 1;
-			const Token *buf = parser->tokenbuf;
+			struct Token *buf = parser->tokenbuf;
 			const char *identifier = buf[0].string;
 
 			if (strcmp("break", identifier) == 0) {
@@ -163,7 +163,7 @@ int parser_parse(struct Parser *parser, struct SymTable *symtable, struct Token 
 						return PARSE_ERROR;
 
 					output->id = STATEMENT_BREAK_LABEL;
-					output->args = buf[1].string;
+					output->args = &buf[1].string;
 					output->arg_count = 1;
 					return PARSE_VALID;
 				} else {
