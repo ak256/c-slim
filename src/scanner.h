@@ -27,7 +27,8 @@ struct Scanner {
     char *buf; // input character buffer
 };
 
-void scanner_init(struct Scanner *scanner, struct TokenRegex *token_regexes, int token_regexes_count);
+void scanner_global_init();
+void scanner_init(struct Scanner *scanner);
 
 int scanner_scan(struct Scanner *scanner, FILE *file, int *ln, struct Token *output);
 

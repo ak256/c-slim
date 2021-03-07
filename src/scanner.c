@@ -10,14 +10,63 @@
 #include <sys/types.h>
 #include <ctype.h>
 #include <stdarg.h>
+#include <regex.h>
 
 #include "scanner.h"
 #include "token.h"
 
 // maximum expression length (in chars for a token)
 #define CHARBUF_SIZE 4096
+#define REGEX_FLAGS (REG_EXTENDED | REG_NOSUB)
+#define CSLIM_TOKEN_REGEXES_COUNT 15
 
-void scanner_init(struct Scanner *scanner, struct TokenRegex *token_regexes, int token_regexes_count) {
+static struct TokenRegex token_regexes[CSLIM_TOKEN_REGEXES_COUNT];
+static int token_regexes_count = 0;
+
+/* Attempts to compile a regular expression string to store in token_regexes.
+ * Exits if fails.
+ *
+ * tokenID - corresponding token that the regex will identify in code
+ * regexstr - the regular expression to match code
+ */
+static void register_token_regex(int tokenID, const char *regexstr) {
+	struct TokenRegex *tr = &token_regexes[token_regexes_count];
+	tr->tokenID = tokenID;
+	int error = regcomp(&tr->regex, regexstr, REGEX_FLAGS);
+	if (error) {
+		fprintf(stderr, "Regex creation failed! %s\n", regexstr);
+		const int errStrSize = 1024;
+		char errStr[errStrSize];
+		regerror(error, &tr->regex, errStr, errStrSize);
+		fprintf(stderr, "%s\n", errStr);
+		exit(EXIT_FAILURE);
+	}
+	token_regexes_count++;
+}
+
+/* One-time initialization of scanner resources (namely token regexes).
+ * These are the same for every C-Slim Scanner. Calling more than once does nothing.
+ */
+void scanner_global_init() {
+	if (token_regexes_count != 0) return;
+	register_token_regex(TOKEN_END_OF_STATEMENT, "^;");
+	register_token_regex(TOKEN_OPERATOR_DIVIDE, "^/[^/]");
+	register_token_regex(TOKEN_OPERATOR, "^[-.~!$%^&*+=|:?]");
+	register_token_regex(TOKEN_LIST_SEPARATOR, "^,");
+	register_token_regex(TOKEN_GROUP_OPEN, "^\\(");
+	register_token_regex(TOKEN_GROUP_CLOSE, "^\\)");
+	register_token_regex(TOKEN_BLOCK_OPEN, "^\\{");
+	register_token_regex(TOKEN_BLOCK_CLOSE, "^\\}");
+	register_token_regex(TOKEN_IDENTIFIER, "^[a-zA-Z_][a-zA-Z0-9_]*[^a-zA-Z0-9_]$");
+	register_token_regex(TOKEN_FLOAT_LITERAL, "^([0-9]+)[.]([0-9]+)[^0-9]$");
+	register_token_regex(TOKEN_INT_LITERAL, "^([0-9]+)[^0-9.]$");
+	register_token_regex(TOKEN_STRING_LITERAL, "^\"([^\\\"]|\\\\.)*\"");
+	register_token_regex(TOKEN_LIST_OPEN, "^\\[");
+	register_token_regex(TOKEN_LIST_CLOSE, "^\\]");
+	register_token_regex(TOKEN_PREPROCESSOR_CMD, "^#([a-zA-Z]+) ");
+}
+
+void scanner_init(struct Scanner *scanner) {
 	scanner->buf = malloc(sizeof(char) * CHARBUF_SIZE);
 	scanner->token_regexes = token_regexes;
 	scanner->token_regexes_count = token_regexes_count;

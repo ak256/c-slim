@@ -14,8 +14,6 @@
 
 #define PARSER_TOKENBUF_SIZE 4096
 
-static char *tokens_to_line(struct Token *buf, int buflen);
-
 void parser_init(struct Parser *parser) {
 	hashtable_init(&parser->included_files, 32, 0);
 	parser->tokenbuf = malloc(PARSER_TOKENBUF_SIZE * sizeof(struct Token));
@@ -40,9 +38,25 @@ static char *strtok_to_string(char *strtok) {
 
 /* Prints the parser's current line info (formatted to be appended after some message). */
 static void print_line_info(struct Parser *parser) {
-	char *line_string = tokens_to_line(parser->tokenbuf, parser->tokenbuf_count);
-	fprintf(stderr, " at line %i: \n\t%s\n", parser->tokenbuf[0].ln, line_string);
-	free(line_string);
+	// recreate string line of code from tokens buffer
+	int string_length;
+	for (int i = 0; i < parser->tokenbuf_count; i++) {
+		string_length += strlen(parser->tokenbuf[i].string) + 1; // +1 for spacing
+	}
+	
+	char string[string_length];
+	int string_index = 0;
+	for (int i = 0; i < parser->tokenbuf_count; i++) {
+		char *token_string = parser->tokenbuf[i].string;
+		int j = 0;
+		for (; token_string[j] != '\0'; j++) {
+			string[string_index + j] = token_string[j];
+		}
+		string[string_index + j] = ' ';
+		string_index += j + 1;
+	}
+	string[string_index - 1] = '\0';
+	fprintf(stderr, " at line %i: \n\t%s\n", parser->tokenbuf[0].ln, string);
 }
 
 /* Checks if the condition is true, and if not, then prints the error message, along with the current line and token information.
@@ -59,30 +73,6 @@ static bool assert(bool condition, struct Parser *parser, const char *error_stri
 
 	print_line_info(parser);
 	return true;
-}
-
-/* Rebuilds code line from list of tokens.
- * Note: inserts spaces between individual tokens.
- */
-static char *tokens_to_line(struct Token *buf, int buflen) {
-	int length;
-	for (int i = 0; i < buflen; i++) {
-		length += strlen(buf[i].string) + 1; // +1 for spacing
-	}
-	
-	char *string = malloc(sizeof(char) * length);
-	int string_index = 0;
-	for (int i = 0; i < buflen; i++) {
-		char *token_string = buf[i].string;
-		int j = 0;
-		for (; token_string[j] != '\0'; j++) {
-			string[string_index + j] = token_string[j];
-		}
-		string[string_index + j] = ' ';
-		string_index += j + 1;
-	}
-	string[string_index - 1] = '\0';
-	return string;
 }
 
 /* Gets the next statement given repeated calls providing a sequence of tokens.

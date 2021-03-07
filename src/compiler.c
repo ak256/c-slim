@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include <regex.h>
 
 #include "compiler.h"
 #include "token.h"
@@ -19,8 +18,12 @@
 #define DEBUG_STATEMENTS 0
 
 #define VERSION "0.2.3"
-#define REGEX_FLAGS (REG_EXTENDED | REG_NOSUB)
-#define CSLIM_TOKEN_REGEXES_COUNT 15
+
+void compiler_init(struct Compiler *compiler) {
+	scanner_init(&compiler->scanner);
+	parser_init(&compiler->parser);
+	symtable_init(&compiler->symtable);
+}
 
 /* Compiles the file with the given file path to bytecode at the output path.
  * Returns: whether successful.
@@ -64,27 +67,6 @@ static inline void print_help() {
 		"\t--version ... print version\n");
 }
 
-/* Attempts to compile a regular expression string to the given regex data struct.
- * Exits if fails.
- *
- * tokenID - corresponding token that the regex will identify in code
- * regexstr - the regular expression to match code
- */
-static struct TokenRegex create_token_regex(int tokenID, const char *regexstr) {
-	struct TokenRegex tr;
-	tr.tokenID = tokenID;
-	int error = regcomp(&tr.regex, regexstr, REGEX_FLAGS);
-	if (error) {
-		fprintf(stderr, "Regex creation failed! %s\n", regexstr);
-		const int errStrSize = 1024;
-		char errStr[errStrSize];
-		regerror(error, &tr.regex, errStr, errStrSize);
-		fprintf(stderr, "%s\n", errStr);
-		exit(EXIT_FAILURE);
-	}
-	return tr;
-}
-
 /* Compiles C-Slim input files. */
 int main(int arg_count, char **args) {
 	char *input_files[arg_count - 1];
@@ -109,28 +91,10 @@ int main(int arg_count, char **args) {
 		return EXIT_FAILURE;
 	}
 
-	struct TokenRegex cslim_token_regexes[CSLIM_TOKEN_REGEXES_COUNT] = {
-		create_token_regex(TOKEN_END_OF_STATEMENT, "^;"),
-		create_token_regex(TOKEN_OPERATOR_DIVIDE, "^/[^/]"),
-		create_token_regex(TOKEN_OPERATOR, "^[-.~!$%^&*+=|:?]"),
-		create_token_regex(TOKEN_LIST_SEPARATOR, "^,"),
-		create_token_regex(TOKEN_GROUP_OPEN, "^\\("),
-		create_token_regex(TOKEN_GROUP_CLOSE, "^\\)"),
-		create_token_regex(TOKEN_BLOCK_OPEN, "^\\{"),
-		create_token_regex(TOKEN_BLOCK_CLOSE, "^\\}"),
-		create_token_regex(TOKEN_IDENTIFIER, "^[a-zA-Z_][a-zA-Z0-9_]*[^a-zA-Z0-9_]$"),
-		create_token_regex(TOKEN_FLOAT_LITERAL, "^([0-9]+)[.]([0-9]+)[^0-9]$"),
-		create_token_regex(TOKEN_INT_LITERAL, "^([0-9]+)[^0-9.]$"),
-		create_token_regex(TOKEN_STRING_LITERAL, "^\"([^\\\"]|\\\\.)*\""),
-		create_token_regex(TOKEN_LIST_OPEN, "^\\["),
-		create_token_regex(TOKEN_LIST_CLOSE, "^\\]"),
-		create_token_regex(TOKEN_PREPROCESSOR_CMD, "^#([a-zA-Z]+) ")
-	};
+	scanner_global_init();
 
 	struct Compiler compiler;
-	scanner_init(&compiler.scanner, cslim_token_regexes, CSLIM_TOKEN_REGEXES_COUNT);
-	parser_init(&compiler.parser);
-	symtable_init(&compiler.symtable);
+	compiler_init(&compiler);
 
 	int compiled_count = 0;
 	for (int i = 0; i < input_files_count; i++) {
